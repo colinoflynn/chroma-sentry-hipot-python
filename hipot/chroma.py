@@ -191,6 +191,11 @@ class Chroma19073(object):
         self.send(0x24, list(payload))
         self.check_reply()
 
+    def clear_steps(self):
+        """Clear all programmed steps"""
+        self.send(0x2C)
+        self.check_reply()
+
     def bytearray_to_items(self, data):
         #Item number from command references PDF
         items = {}
