@@ -10,7 +10,7 @@ Many Sentry 20 Plus units don't have the RS232, but some do. The protocol is des
 While these are branded differently, they are the same unit it looks like and the interface still works OK.
 
 The RS232 port on the Sentry 20 looks like the following figure, be careful it's *not* the DB9 to the left which just indicates
-pass/fail conditions.
+pass/fail conditions. If you only have the 5 screw terminals your unit does not have the RS232 option fitted.
 
 ![](photo/sentry20rs232.jpg)
 
