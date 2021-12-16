@@ -99,6 +99,26 @@ class Chroma19073(object):
 
         return payload
 
+    def check_reply(self):
+        """Check a 'reply message' for a success"""
+        response = self.read()
+
+        if response[0] != 0x7F:
+            raise IOError("Sync Error")
+
+        if response[1] == 0:
+            return
+
+        elif response[1] == 1:
+            raise IOError("Command Error")
+
+        elif response[1] == 2:
+            raise ValueError("Parameter Error (check values to ranges from manual)")
+
+        else:
+            raise IOError("Unknown reply: %d"%response[1])
+
+
     def send_receive_commandecho(self, command, parameters=[]):
         """Sends a command & receives response, where first byte of response is same as 'command'"""
         self.send(command, parameters)
@@ -116,12 +136,52 @@ class Chroma19073(object):
     def start(self):
         """Send 'start' command"""
         self.send(0x22)
-        result = self.read()
+        self.check_reply()
 
     def stop(self):
         """Send 'stop' command"""
         self.send(0x21)
-        result = self.read()
+        self.check_reply()
+
+    def set_step_parameter_ac(self, step, voltage, ramp_time_sec, test_time_sec, fall_time_sec, high_limit_A, low_limit_A, arc_limit_A):
+        """Setup a AC step"""
+
+        ramp_time_sec *= 10
+        test_time_sec *= 10
+        fall_time_sec *= 10
+        high_limit_A *= 10E6
+        low_limit_A *= 10E6
+        arc_limit_A *= 10E6
+
+        payload = struct.pack("<BBHHHHHLLLL", step, 1, int(voltage), int(ramp_time_sec), 0,
+                                   int(test_time_sec), int(fall_time_sec),
+                                   int(high_limit_A), int(low_limit_A), int(arc_limit_A), 0)
+
+        self.send(0x24, list(payload))
+        self.check_reply()
+
+    def set_step_parameter_dc(self, step, voltage, ramp_time_sec, dwell_time_s, test_time_sec, fall_time_sec, high_limit_A, low_limit_A, arc_limit_A, inrush=False):
+        """Setup a DC step"""
+
+        ramp_time_sec *= 10
+        dwell_time_s *= 10
+        test_time_sec *= 10
+        fall_time_sec *= 10
+        high_limit_A *= 10E6
+        low_limit_A *= 10E6
+        arc_limit_A *= 10E6
+
+        if inrush:
+            inrush = 10000
+        else:
+            inrush = 0
+
+        payload = struct.pack("<BBHHHHHLLLL", step, 2, int(voltage), int(ramp_time_sec), int(dwell_time_s),
+                                   int(test_time_sec), int(fall_time_sec),
+                                   int(high_limit_A), int(low_limit_A), int(arc_limit_A), inrush)
+
+        self.send(0x24, list(payload))
+        self.check_reply()
 
     def bytearray_to_items(self, data):
         #Item number from command references PDF
