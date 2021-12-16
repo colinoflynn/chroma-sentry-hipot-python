@@ -1,3 +1,11 @@
+#
+# pyhipot - Python interface for HiPot tester.
+#
+# This file is for Chroma / QuadTech products.
+#
+# Copyright (C) Colin O'Flynn, 2021.
+#
+
 import serial
 import struct
 
