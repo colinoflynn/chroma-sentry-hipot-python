@@ -196,74 +196,85 @@ class Chroma19073(object):
         items[128] = struct.unpack('<H', data[11:13])[0]
         return items
 
-    def get_last_result(self):
-        """Send 'result?' command for last result"""
-        result = self.send_receive_commandecho(0xb1, [0x00, 0xD7])
+    def get_result(self, step=0):
+        """Send 'result?' command for step, '0' returns current/last result"""
+        result = self.send_receive_commandecho(0xb1, [step, 0xD7])
 
-        measurement_list = []
-
-        processing = True
         idx = 0
-        while processing:
-            measurement = {}
-            measurement['step'] = result[idx]
-            measurements = result[idx+1]
-            measurement['result code'] = self.test_results[result[idx+2]]
-            if result[idx+3] != 0xD7:
-                raise IOError("Expected 'D7' here?")
+        measurement = {}
+        measurement_new_test_result = result[idx] #not sure what this is
+        measurement['step'] = result[idx+1]
 
-            data = result[(idx+4):]
-            items = self.bytearray_to_items(data)
+        measurement['result code'] = self.test_results[result[idx+2]]
+        if result[idx+3] != 0xD7:
+            raise IOError("Expected 'D7' here?")
 
-            if data[0] == 1:
-                #AC Mode
-                measurement['mode'] = 'AC'
-                measurement['voltage'] = items[2]
-                measurement['current'] = items[4] * 100E-9
-                measurement['ramp time'] = items[16] * 100E-3
-                measurement['test time'] = items[64] * 100E-3
-                measurement['fall time'] = items[128] * 100E-3
-                pass
-            elif data[0] == 2:
-                #DC Mode
-                measurement['mode'] = 'DC'
-                # Sentry 20 doesn't seem to have these 'keys'. This has only been tested
-                # on a sentry 20, so maybe none of them do?
-                if 8 in items.keys():
-                    measurement['inrush']  = struct.unpack('<L', data[7:11])[0] * 100E-9
-                measurement['ramp time'] = struct.unpack('<H', data[7:9])[0] * 100E-3
-                if 32 in items.keys():
-                    measurement['dwell time'] = struct.unpack('<H', data[13:15])[0] * 100E-3
-                measurement['voltage'] = items[2]
-                measurement['current'] = items[4] * 100E-9
-                measurement['ramp time'] = items[16] * 100E-3
-                measurement['test time'] = items[64] * 100E-3
-                measurement['fall time'] = items[128] * 100E-3
+        data = result[(idx+4):]
+        items = self.bytearray_to_items(data)
 
-            elif data[0] == 3:
-                #IR Mode
-                measurement['mode'] = 'IR'
-                raise NotImplementedError()
-            elif data[0] == 4:
-                #GC Mode
-                measurement['mode'] = 'GC'
-            elif data[0] == 5:
-                #PA Mode
-                measurement['mode'] = 'PA'
-                raise NotImplementedError()
-            elif data[0] == 6:
-                #OS Mode
-                measurement['mode'] = 'OS'
-                measurement['voltage'] = struct.unpack('<H', data[1:3])[0]
-                measurement['cap_pF'] = struct.unpack('<L', data[3:7])[0]
-                measurement['test time'] = struct.unpack('<H', data[9:11])[0] * 100E-3
-            else:
-                raise IOError("Fail?")
+        if data[0] == 1:
+            #AC Mode
+            measurement['mode'] = 'AC'
+            measurement['voltage'] = items[2]
+            measurement['current'] = items[4] * 100E-9
+            measurement['ramp time'] = items[16] * 100E-3
+            measurement['test time'] = items[64] * 100E-3
+            measurement['fall time'] = items[128] * 100E-3
+            pass
+        elif data[0] == 2:
+            #DC Mode
+            measurement['mode'] = 'DC'
+            # Sentry 20 doesn't seem to have these 'keys'. This has only been tested
+            # on a sentry 20, so maybe none of them do?
+            if 8 in items.keys():
+                measurement['inrush']  = struct.unpack('<L', data[7:11])[0] * 100E-9
+            measurement['ramp time'] = struct.unpack('<H', data[7:9])[0] * 100E-3
+            if 32 in items.keys():
+                measurement['dwell time'] = struct.unpack('<H', data[13:15])[0] * 100E-3
+            measurement['voltage'] = items[2]
+            measurement['current'] = items[4] * 100E-9
+            measurement['ramp time'] = items[16] * 100E-3
+            measurement['test time'] = items[64] * 100E-3
+            measurement['fall time'] = items[128] * 100E-3
 
-            measurement_list.append(measurement)
-            processing = False
+        elif data[0] == 3:
+            #IR Mode
+            measurement['mode'] = 'IR'
+            raise NotImplementedError()
+        elif data[0] == 4:
+            #GC Mode
+            measurement['mode'] = 'GC'
+        elif data[0] == 5:
+            #PA Mode
+            measurement['mode'] = 'PA'
+            raise NotImplementedError()
+        elif data[0] == 6:
+            #OS Mode
+            measurement['mode'] = 'OS'
+            measurement['voltage'] = struct.unpack('<H', data[1:3])[0]
+            measurement['cap_pF'] = struct.unpack('<L', data[3:7])[0]
+            measurement['test time'] = struct.unpack('<H', data[9:11])[0] * 100E-3
+        else:
+            raise IOError("Fail?")
 
-        return measurement_list
+        return measurement
+
+    def wait_and_return_results(self):
+        """Wait for test started with `start()` to finish, return all steps"""
+
+        status = "TESTING"
+
+        while status == "TESTING":
+            resp = self.get_result()
+            status = resp['result code']
+
+        final_step = resp['step']
+
+        measurements = []
+        for i in range(1, final_step+1):
+            measurements.append(self.get_result(i))
+
+        return measurements
 
 class QuadTechSentry20(Chroma19073):
     name = "QuadTech Sentry 20 Plus"
