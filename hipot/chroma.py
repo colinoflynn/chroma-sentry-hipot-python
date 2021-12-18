@@ -151,7 +151,7 @@ class Chroma19073(object):
         self.send(0x21)
         self.check_reply()
 
-    def set_step_parameter_ac(self, step, voltage, ramp_time_sec, test_time_sec, fall_time_sec, high_limit_A, low_limit_A, arc_limit_A):
+    def set_step_parameter_ac(self, step, voltage, test_time_sec, high_limit_A, ramp_time_sec=0.5, fall_time_sec=0, low_limit_A=0, arc_limit_A=0):
         """Setup a AC step"""
 
         ramp_time_sec *= 10
@@ -168,7 +168,7 @@ class Chroma19073(object):
         self.send(0x24, list(payload))
         self.check_reply()
 
-    def set_step_parameter_dc(self, step, voltage, ramp_time_sec, dwell_time_s, test_time_sec, fall_time_sec, high_limit_A, low_limit_A, arc_limit_A, inrush=False):
+    def set_step_parameter_dc(self, step, voltage, test_time_sec, high_limit_A, ramp_time_sec=0.5, fall_time_sec=0, dwell_time_s=0, low_limit_A=0, arc_limit_A=0, inrush=False):
         """Setup a DC step"""
 
         ramp_time_sec *= 10

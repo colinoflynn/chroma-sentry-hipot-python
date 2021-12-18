@@ -11,4 +11,8 @@ print(data)
 
 s.clear_steps()
 
-#s.set_step_parameter_ac(2, 1000, 0.5, 3, 0.2, 5E-6, 0, 0)
+s.set_step_parameter_dc(1, voltage=1000,
+                           ramp_time_sec=3,
+                           test_time_sec=60,
+                           high_limit_A=1E-6)
+
